@@ -1,9 +1,9 @@
-from bfxapi import Client
+from bfxapi.rest.bfx_rest import BfxRest
 
 class BfxPulseClient:
 
-  def __init__(self, API_KEY='', API_SECRET='', logLevel='DEBUG'):
-    self.client = Client(API_KEY=API_KEY, API_SECRET=API_SECRET, logLevel=logLevel)
+  def __init__(self, API_KEY=None, API_SECRET=None, loop=None, logLevel='DEBUG', *args, **kwargs):
+    self.rest = BfxRest(API_KEY=API_KEY, API_SECRET=API_SECRET, loop=loop, logLevel=logLevel, *args, **kwargs)
 
   async def write(self, title, content, isPublic=0, isPin=0, attachments=[]):
     # https://docs.bitfinex.com/reference#rest-auth-pulse-add
@@ -16,11 +16,14 @@ class BfxPulseClient:
       'attachments': attachments  # list of base64 strings
     }
 
+    if len(title) < 16 or len(title) > 120:
+      raise Exception("Title must be 16-120 characters (was: {length})".format(length=len(title)))
     try:
       # [ PID, MTS, None, PUID, None, TITLE, CONTENT, None, None, IS_PIN, IS_PUBLIC, None, TAGS[], ATTACHMENTS[], None, LIKES, None, None, UID_LIKED ]
-      response = await self.client.rest.post(endpoint, payload)
+      response = await self.rest.post(endpoint, payload)
     except Exception as e:
       print("pulse/write error: ", e)
+      raise
     else:
       return response
 
@@ -32,9 +35,10 @@ class BfxPulseClient:
     }
     try:
       # response is list of post history
-      response = await self.client.rest.post(endpoint, payload)
+      response = await self.rest.post(endpoint, payload)
     except Exception as e:
       print("pulse/hist error: ", e)
+      raise
     else:
       return response
 
@@ -46,8 +50,9 @@ class BfxPulseClient:
     }
     try:
       # response is [1] if successful or [0] if pid not found
-      response = await self.client.rest.post(endpoint, payload)
+      response = await self.rest.post(endpoint, payload)
     except Exception as e:
       print("pulse/del error: ", e)
+      raise
     else:
       return response
